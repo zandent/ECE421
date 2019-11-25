@@ -46,10 +46,11 @@ def log_posterior(log_PDF, log_pi):
     return up - down
 
 
-is_valid = 0
+tf.random.seed(45689)
+is_valid = 1
 # Loading data
-#data = np.load('data100D.npy')
-data = np.load('data2D.npy')
+data = np.load('data100D.npy')
+#data = np.load('data2D.npy')
 [num_pts, dim] = np.shape(data)
 
 # For Validation set
@@ -60,7 +61,7 @@ if is_valid:
   np.random.shuffle(rnd_idx)
   val_data = data[rnd_idx[:valid_batch]]
   data = data[rnd_idx[valid_batch:]]
-K = 3
+K = 30
 epochs = 3000
 #pk = hlp.logsoftmax(tf.transpose(tf.range(1, K + 1, 1)))
 pk = tf.get_variable(name = 'pk', shape=[K,1], initializer=tf.random_normal_initializer())
@@ -74,16 +75,20 @@ optimizer = tf.train.AdamOptimizer(learning_rate=0.003, beta1=0.9, beta2=0.99,ep
 clu_index = tf.argmax(tf.nn.softmax(log_posterior(log_PDF_,log_pi_)),1)
 
 train_loss = []
+valid_loss = []
 init_op= tf.global_variables_initializer()
 with tf.Session() as ses:
   ses.run(init_op)
   for step in range(0,epochs):
-    #print("iter: ",step)
+    if step%500 == 0:
+      print("iter: ",step)
     #log_PDF__,log_pi__= ses.run([log_PDF_, log_pi_],feed_dict={X: data})
     #print("pdf shape", np.shape(log_PDF__))
     #print("pi shape", np.shape(log_pi__))
     _,err= ses.run([optimizer, loss],feed_dict={X: data})
     train_loss.append(err)
+    valid_err= ses.run([loss],feed_dict={X: val_data})
+    valid_loss.append(valid_err)
   clu_index_,MU_arr= ses.run([clu_index,MU],feed_dict={X: data})
   percentages = np.zeros(K)
   for i in range(K):
@@ -91,14 +96,33 @@ with tf.Session() as ses:
     print("Cluster:", i, "percentage:", percentages[i])
   print("MU:", MU.eval())
   print('Train Error:', train_loss[len(train_loss)-1])
+  print('Valid error:',valid_loss[len(valid_loss)-1])
+  # plt.figure()
+  # plt.subplot(211)
+  # plt.scatter(data[:, 0], data[:, 1], c=clu_index_)
+  # plt.plot(MU_arr[:, 0], MU_arr[:, 1], c="black", markersize=15, marker="*")
+  # plt.xlabel('X')
+  # plt.ylabel('Y')
+  # plt.subplot(212)
+  # PlotTrLoss,=plt.plot(train_loss, 'r', label="TrainLoss")
+  # plt.ylabel('Error')
+  # plt.xlabel('Epochs')
+  # plt.legend(handles=[PlotTrLoss])
+  # plt.show()
   plt.figure()
-  plt.subplot(211)
-  plt.scatter(data[:, 0], data[:, 1], c=clu_index_)
-  plt.plot(MU_arr[:, 0], MU_arr[:, 1], c="black", markersize=15, marker="*")
-  plt.xlabel('X')
-  plt.ylabel('Y')
-  plt.subplot(212)
-  PlotTrLoss,=plt.plot(train_loss, 'r', label="TrainLoss")
+  # plt.subplot(211)
+  # if is_valid:
+  #   plt.scatter(data[:, 0], data[:, 1], c=clu_index_)
+  # else:
+  #   plt.scatter(val_data[:, 0], val_data[:, 1], c=clu_index_)
+  # plt.plot(MU_arr[:, 0], MU_arr[:, 1], c="black", markersize=15, marker="*")
+  # plt.xlabel('X')
+  # plt.ylabel('Y')
+  # plt.subplot(212)
+  if is_valid==0 :
+    PlotTrLoss,=plt.plot(train_loss, 'r', label="Loss")
+  else:
+    PlotTrLoss,=plt.plot(valid_loss, 'r', label="Loss")
   plt.ylabel('Error')
   plt.xlabel('Epochs')
   plt.legend(handles=[PlotTrLoss])
