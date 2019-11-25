@@ -45,7 +45,6 @@ valid_loss = []
 init_op= tf.global_variables_initializer()
 with tf.Session() as ses:
   ses.run(init_op)
-  tf.shape(loss)
   for step in range(0,epochs):
     #print("iter: ",step)
     _,err= ses.run([optimizer, loss],feed_dict={X: data})
