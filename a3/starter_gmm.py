@@ -46,7 +46,7 @@ def log_posterior(log_PDF, log_pi):
     return up - down
 
 
-tf.random.seed(45689)
+tf.random.set_seed(45689)
 is_valid = 1
 # Loading data
 data = np.load('data100D.npy')
